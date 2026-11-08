@@ -5,6 +5,7 @@
 """
 
 import json
+import random
 from functools import cache
 from pathlib import Path
 
@@ -77,3 +78,37 @@ def get_lecture_summary(lecture: int) -> str:
         available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
         return f"第{lecture}回の要点はまだありません。用意されている回: {', '.join(available)}"
     return path.read_text(encoding="utf-8")
+
+def make_quiz(lecture: int) -> str:
+    """指定した講義回の用語から、復習用の確認問題を1つ作る。
+
+    「第2回の確認問題を出して」のように、
+    講義内容を復習する問題を求められたときに使う。
+    """
+    terms = [
+        item
+        for item in load_glossary()
+        if item["lecture"] == lecture
+    ]
+
+    if not terms:
+        return f"第{lecture}回の用語が見つかりません。"
+
+    item = random.choice(terms)
+
+    return json.dumps(
+        {
+            "question": f"「{item['term']}」の意味は？",
+            "answer": item["definition"],
+        },
+        ensure_ascii=False,
+    )
+
+
+def save_learning_log(content: str) -> str:
+    """学習記録をlearning_logフォルダに保存する。"""
+    log_dir = Path("learning_log")
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "latest.txt"
+    log_file.write_text(content, encoding="utf-8")
+    return f"学習記録を {log_file} に保存しました。"
