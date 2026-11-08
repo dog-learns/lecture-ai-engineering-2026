@@ -16,7 +16,7 @@ import inspect
 import json
 from pathlib import Path
 
-from pydantic_ai import Agent, DeferredToolRequests
+from pydantic_ai import Agent, DeferredToolRequests, DeferredToolResults
 from pydantic_ai.exceptions import ModelHTTPError
 from fastmcp import Client
 from pydantic_ai.mcp import MCPToolset, StdioTransport
@@ -133,6 +133,22 @@ def main() -> None:
         print("[tools] MCP サーバー（app/mcp_servers.json）")
     try:
         result = target.run_sync(args.question, model=build_model())
+        if isinstance(result.output, DeferredToolRequests):
+           print("保存の確認が必要です。")
+           answer = input("保存してよいですか？ (y/n): ")
+           approved = answer.strip().lower() in {"y", "yes"}
+           approvals = {
+                call.tool_call_id: approved
+                for call in result.output.approvals
+            }
+           deferred_results = DeferredToolResults(approvals=approvals)
+
+           result = target.run_sync(
+                args.question,
+                model=build_model(),
+                message_history=result.all_messages(),
+                deferred_tool_results=deferred_results,
+            )
     except ModelHTTPError as e:
         print(api_error_message(e.status_code, str(e.body)[:200]))
         raise SystemExit(1)
