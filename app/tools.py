@@ -103,3 +103,12 @@ def make_quiz(lecture: int) -> str:
         },
         ensure_ascii=False,
     )
+
+
+def save_learning_log(content: str) -> str:
+    """学習記録をlearning_logフォルダに保存する。"""
+    log_dir = Path("learning_log")
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "latest.txt"
+    log_file.write_text(content, encoding="utf-8")
+    return f"学習記録を {log_file} に保存しました。"
